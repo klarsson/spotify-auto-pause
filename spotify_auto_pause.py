@@ -3,12 +3,13 @@
 Pause spotify if another media player starts playing, and resume when it stops.
 """
 import logging
-import dbus.exceptions
 import signal
+from argparse import ArgumentParser
+import dbus.exceptions
+from dbus import Interface, SessionBus
 from dbus.mainloop.glib import DBusGMainLoop
 from gi.repository import GLib
-from dbus import Interface, SessionBus
-from argparse import ArgumentParser
+
 
 STATUS_PAUSED = 'Paused'
 STATUS_PLAYING = 'Playing'
@@ -37,12 +38,10 @@ def on_properties_changed(interface_name, changed_properties, invalidated_proper
     sender = call_args.get('sender')
     playback_status = changed_properties.get('PlaybackStatus')
 
-    log.debug(
-        "Properties changed.",
-        {'interface_name': interface_name, 'sender': sender, 'playback_status': playback_status}
-    )
+    context = {'interface_name': interface_name, 'sender': sender, 'playback_status': playback_status}
+    log.debug("Properties changed.", context)
 
-    if (playback_status == STATUS_PLAYING or playback_status == STATUS_PAUSED) and not is_spotify(sender):
+    if playback_status in (STATUS_PLAYING, STATUS_PAUSED) and not is_spotify(sender):
         play_pause_spotify(playback_status)
 
 
@@ -60,7 +59,7 @@ def play_pause_spotify(playback_status):
         log.info("Pausing spotify.")
         was_playing = spotify_properties.Get(PLAYER_INTERFACE_NAME, 'PlaybackStatus') == STATUS_PLAYING
         spotify_player.Pause()
-    elif was_playing and (playback_status == STATUS_PAUSED or playback_status == STATUS_STOPPED):
+    elif was_playing and playback_status in (STATUS_PAUSED, STATUS_STOPPED):
         log.info("Resuming playing.")
         spotify_player.Play()
 
