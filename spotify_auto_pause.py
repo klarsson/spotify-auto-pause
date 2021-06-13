@@ -3,8 +3,6 @@
 Pause spotify if another media player starts playing, and resume when it stops.
 """
 import logging
-import sys
-
 import dbus.exceptions
 import signal
 from dbus.mainloop.glib import DBusGMainLoop
@@ -30,15 +28,6 @@ was_playing = False
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
-class Formatter(logging.Formatter):
-    STD_FORMAT = '%(message)s'
-    EXTRA_FORMAT = STD_FORMAT + '- %(extra)s'
-
-    def format(self, record):
-        if record.h
-
-
-
 
 def on_properties_changed(interface_name, changed_properties, invalidated_properties, **call_args):
     if not is_spotify_running:
@@ -46,9 +35,12 @@ def on_properties_changed(interface_name, changed_properties, invalidated_proper
         return
 
     sender = call_args.get('sender')
-    log.debug("Properties changed.", extra={'interface_name': interface_name, 'sender': sender})
-
     playback_status = changed_properties.get('PlaybackStatus')
+
+    log.debug(
+        "Properties changed.",
+        {'interface_name': interface_name, 'sender': sender, 'playback_status': playback_status}
+    )
 
     if (playback_status == STATUS_PLAYING or playback_status == STATUS_PAUSED) and not is_spotify(sender):
         play_pause_spotify(playback_status)
@@ -105,11 +97,11 @@ if __name__ == '__main__':
     parser = ArgumentParser(description=__doc__)
     parser.add_argument('-v', '--verbose', help="Verbose output, use twice for very verbose.", action='count')
     args = parser.parse_args()
+
     logging.basicConfig(
-        level=[logging.WARNING, logging.INFO, logging.DEBUG][args.verbose or 0],
-        format=Formatter()
+        level=[logging.WARNING, logging.INFO, logging.DEBUG][max(args.verbose or 0, 2)],
+        format='%(levelname)s::%(message)s: %(args)s'
     )
-    log.addHandler(logging.StreamHandler(stream=sys.stderr))
 
     DBusGMainLoop(set_as_default=True)
     loop = GLib.MainLoop()
@@ -131,4 +123,5 @@ if __name__ == '__main__':
 
     setup_spotify_interfaces()
 
+    log.debug('starting')
     loop.run()
